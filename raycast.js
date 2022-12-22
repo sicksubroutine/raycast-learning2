@@ -7,6 +7,8 @@ const WINDOW_HEIGHT = MAP_NUM_ROWS * TILE_SIZE;
 
 const PI = Math.PI;
 const DOUBLE_PI = PI * 2;
+const HALF_PI = PI / 2;
+const ONE_AND_ONE_HALF_PI = PI * 1.5;
 
 const FOV_ANGLE = 60 * (PI / 180);
 const WALL_STRIP_WIDTH = 30;
@@ -75,20 +77,54 @@ class Player {
        }
     }
     render() {
+        noStroke();
         fill("red");
         circle(this.x, this.y, this.radius);
-        stroke("red");
+        /*stroke("red");
         line(
             this.x, 
             this.y, 
             this.x + Math.cos(this.rotationAngle) * 20, 
-            this.y + Math.sin(this.rotationAngle) * 20);
+            this.y + Math.sin(this.rotationAngle) * 20);*/
     }
 }
 
 class Ray {
     constructor(rayAngle) {
-       this.rayAngle = rayAngle;
+        this.rayAngle = normalizeAngle(rayAngle);
+        this.wallHitX = 0;
+        this.wallHitY = 0;
+        this.distance = 0;
+
+        this.isRayFacingDown = this.rayAngle > 0 && this.rayAngle < PI;
+        this.isRayFacingUp = !this.isRayFacingDown;
+
+        this.isRayFacingRight = this.rayAngle < HALF_PI || this.rayAngle > ONE_AND_ONE_HALF_PI;
+        this.isRayFacingLeft = !this.isRayFacingRight;
+    }
+    cast(columnId) {
+        var xintercept, yintercept;
+        var xstep, ystep;
+
+    ////////////////////////////////////////
+    /// HORIZONTAL RAY-GRID INTERSECTION ///
+    ////////////////////////////////////////
+
+    console.log("isRayFacingRight? " + this.isRayFacingRight)
+
+    // Find the y-coordinate of the closest horizontal grid intersection
+        yintercept = Math.floor(player.y / TILE_SIZE) * TILE_SIZE;
+        yintercept += this.isRayFacingDown ? TILE_SIZE : 0;
+    // Find the x-coordinate of the closest horizontal grid intersection
+        xintercept = player.x + (yintercept - player.y) / Math.tan(this.rayAngle);
+        
+    // Calculate the increment xstep and ystep
+        ystep = TILE_SIZE;
+        ystep *= this.isRayFacingUp ? -1 : 1;
+
+        xstep = TILE_SIZE / Math.tan(this.rayAngle);
+        xstep *= (this.isRayFacingLeft && xstep > 0) ? -1 : 1;
+        xstep *= (this.isRayFacingRight && xstep < 0) ? -1 : 1;
     }
     render() {
         stroke("rgba(255, 0 ,0 ,0.3)");
@@ -141,12 +177,20 @@ function castAllRays() {
     //for (var i = 0; i < NUM_RAYS; i++)
     for (var i = 0; i < 1; i++) {
         var ray = new Ray(rayAngle);
-        // TODO: ray.cast();
+        ray.cast(columnId);
         rays.push(ray);
         rayAngle += FOV_ANGLE / NUM_RAYS;
 
         columnId++;
     }
+}
+
+function normalizeAngle(angle) {
+    angle = angle % (DOUBLE_PI);
+    if (angle < 0) {
+        angle = (DOUBLE_PI) + angle;
+    }
+    return angle;
 }
 
 function setup() {
